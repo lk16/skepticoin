@@ -28,22 +28,22 @@ def _store_chain_as_tar() -> None:
 
     os.chdir(CHAIN_PATH)
 
-    files = Path('.').iterdir()
-    uncompressed_file_paths = sorted(filter(lambda file: not file.name.endswith('tar.gz'), files))
-
     tar: Optional[tarfile.TarFile] = None
-    prev_tar_height = -1
+    prev_tar_name = ''
 
-    for path in uncompressed_file_paths:
+    for path in sorted(Path('.').iterdir()):
+        if path.name.endswith('tar.gz'):
+            continue
+
         height = int(path.name.split("-")[0])
         tar_height = height - (height % BLOCKS_PER_TAR_FILE)
+        tar_name = f'{tar_height:08d}.tar.gz'
 
-        if (not tar) or tar_height != prev_tar_height:
+        if (not tar) or prev_tar_name != tar_name:
             if tar:
                 tar.close()
 
-            prev_tar_height = tar_height
-            tar_name = f'{tar_height:08d}.tar.gz'
+            prev_tar_name = tar_name
             tar = tarfile.open(tar_name, 'w:gz')
             print(f"Compressing chain: creating {tar_name}")
 
