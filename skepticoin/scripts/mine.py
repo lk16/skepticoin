@@ -1,7 +1,7 @@
-from pathlib import Path
 from decimal import Decimal
 from datetime import datetime
 import random
+from skepticoin.files.chain import save_block
 from skepticoin.datatypes import Block
 from skepticoin.networking.threading import NetworkingThread
 from skepticoin.coinstate import CoinState
@@ -15,10 +15,14 @@ from skepticoin.utils import block_filename
 from skepticoin.cheating import MAX_KNOWN_HASH_HEIGHT
 from time import time
 from multiprocessing import Process, Lock, Queue, synchronize
-from .utils import (
-    initialize_peers_file,
+
+from skepticoin.files.chain import (
     create_chain_dir,
     read_chain_from_disk,
+)
+
+from .utils import (
+    initialize_peers_file,
     open_or_init_wallet,
     start_networking_peer_in_background,
     check_for_fresh_chain,
@@ -82,8 +86,7 @@ class Miner:
 
     def handle_mined_block(self, block: Block) -> None:
         self.coinstate = self.coinstate.add_block(block, int(time()))
-        with open(Path('chain') / block_filename(block), 'wb') as f:
-            f.write(block.serialize())
+        save_block(block)
 
         self.send_message("found_block", block_filename(block))
         self.send_message("balance", self.get_balance())

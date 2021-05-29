@@ -1,5 +1,3 @@
-from io import BytesIO
-import zipfile
 import sys
 import urllib.request
 from pathlib import Path
@@ -10,7 +8,6 @@ import tempfile
 import logging
 import argparse
 
-from skepticoin.datatypes import Block
 from skepticoin.coinstate import CoinState
 from skepticoin.networking.threading import NetworkingThread
 from skepticoin.wallet import Wallet, save_wallet
@@ -35,18 +32,6 @@ def initialize_peers_file() -> None:
                 f.write(response.read())
 
 
-def create_chain_dir() -> None:
-    if not os.path.exists('chain'):
-        print("Pre-download blockchain from trusted source to 'blockchain-master'")
-        with urllib.request.urlopen("https://github.com/skepticoin/blockchain/archive/refs/heads/master.zip") as resp:
-            with zipfile.ZipFile(BytesIO(resp.read())) as zip_ref:
-                print("Extracting...")
-                zip_ref.extractall()
-
-        print("Created new directory for chain")
-        os.rename('blockchain-master', 'chain')
-
-
 def check_for_fresh_chain(thread: NetworkingThread) -> bool:
     # wait until your chain is no more than 20 typical block-sizes old before you start mining yourself
     waited = False
@@ -67,25 +52,6 @@ def check_for_fresh_chain(thread: NetworkingThread) -> bool:
         print("WAITING ABORTED... CONTINUING DESPITE FRESHNESS/CONNECTEDNESS!")
 
     return waited
-
-
-def read_chain_from_disk() -> CoinState:
-    print("Reading chain from disk")
-    coinstate = CoinState.zero()
-    for filename in sorted(os.listdir('chain')):
-        height = int(filename.split("-")[0])
-        if height % 1000 == 0:
-            print(filename)
-
-        try:
-            with open(Path("chain") / filename, 'rb') as f:
-                block = Block.stream_deserialize(f)
-        except Exception as e:
-            raise Exception("Corrupted block on disk: %s" % filename) from e
-
-        coinstate = coinstate.add_block_no_validation(block)
-
-    return coinstate
 
 
 def open_or_init_wallet() -> Wallet:

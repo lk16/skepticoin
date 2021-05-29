@@ -8,11 +8,15 @@ import skepticoin.networking.messages
 import skepticoin.signing
 import skepticoin.humans
 from skepticoin.params import SASHIMI_PER_COIN
+
+from skepticoin.files.chain import (
+    create_chain_dir,
+    read_chain_from_disk,
+)
+
 from skepticoin.scripts.utils import (
     configure_logging_from_args,
     initialize_peers_file,
-    create_chain_dir,
-    read_chain_from_disk,
     open_or_init_wallet,
     start_networking_peer_in_background,
     DefaultArgumentParser,

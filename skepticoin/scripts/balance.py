@@ -1,9 +1,12 @@
 from datetime import datetime
 
-from .utils import (
-    open_or_init_wallet,
+from skepticoin.files.chain import (
     create_chain_dir,
     read_chain_from_disk,
+)
+
+from .utils import (
+    open_or_init_wallet,
     configure_logging_from_args,
     DefaultArgumentParser,
 )

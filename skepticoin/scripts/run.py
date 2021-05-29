@@ -1,9 +1,12 @@
 import traceback
 
-from .utils import (
-    initialize_peers_file,
+from skepticoin.files.chain import (
     create_chain_dir,
     read_chain_from_disk,
+)
+
+from .utils import (
+    initialize_peers_file,
     open_or_init_wallet,
     start_networking_peer_in_background,
     configure_logging_from_args,

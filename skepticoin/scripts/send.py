@@ -9,10 +9,13 @@ from skepticoin.consensus import (
     validate_non_coinbase_transaction_in_coinstate,
 )
 
-from .utils import (
-    initialize_peers_file,
+from skepticoin.files.chain import (
     create_chain_dir,
     read_chain_from_disk,
+)
+
+from .utils import (
+    initialize_peers_file,
     open_or_init_wallet,
     start_networking_peer_in_background,
     check_for_fresh_chain,
