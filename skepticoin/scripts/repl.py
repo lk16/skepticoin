@@ -10,7 +10,6 @@ import skepticoin.humans
 from skepticoin.params import SASHIMI_PER_COIN
 
 from skepticoin.files.chain import (
-    create_chain_dir,
     read_chain_from_disk,
 )
 
@@ -37,7 +36,6 @@ def main() -> None:
     args = parser.parse_args()
     configure_logging_from_args(args)
 
-    create_chain_dir()
     coinstate = read_chain_from_disk()
     wallet = open_or_init_wallet()
     initialize_peers_file()

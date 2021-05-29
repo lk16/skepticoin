@@ -11,7 +11,12 @@ from skepticoin.coinstate import CoinState
 CHAIN_PATH = Path('chain')
 
 
+# TODO use tarfile
+
+
 def read_chain_from_disk() -> CoinState:
+    create_chain_dir()
+
     print("Reading chain from disk")
 
     coinstate = CoinState.zero()

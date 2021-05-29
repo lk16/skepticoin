@@ -17,7 +17,6 @@ from time import time
 from multiprocessing import Process, Lock, Queue, synchronize
 
 from skepticoin.files.chain import (
-    create_chain_dir,
     read_chain_from_disk,
 )
 
@@ -53,7 +52,6 @@ class Miner:
     def prepare(self) -> None:
         configure_logging_from_args(self.args)
 
-        create_chain_dir()
         self.coinstate = read_chain_from_disk()
 
         self.wallet_lock.acquire()

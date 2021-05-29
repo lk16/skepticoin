@@ -10,7 +10,6 @@ from skepticoin.consensus import (
 )
 
 from skepticoin.files.chain import (
-    create_chain_dir,
     read_chain_from_disk,
 )
 
@@ -38,7 +37,6 @@ def main() -> None:
         print("Invalid address")
         return
 
-    create_chain_dir()
     coinstate = read_chain_from_disk()
     wallet = open_or_init_wallet()
     initialize_peers_file()
