@@ -1,7 +1,7 @@
 from decimal import Decimal
 from datetime import datetime
 import random
-from skepticoin.files.chain import save_block
+from skepticoin.files.chain import save_block_to_disk
 from skepticoin.datatypes import Block
 from skepticoin.networking.threading import NetworkingThread
 from skepticoin.coinstate import CoinState
@@ -86,7 +86,7 @@ class Miner:
 
     def handle_mined_block(self, block: Block) -> None:
         self.coinstate = self.coinstate.add_block(block, int(time()))
-        save_block(block)
+        save_block_to_disk(block)
 
         self.send_message("found_block", block_filename(block))
         self.send_message("balance", self.get_balance())
