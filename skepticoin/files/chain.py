@@ -1,46 +1,96 @@
 from io import BytesIO
-from typing import List
+import os
+from typing import Dict, List, Optional
 from skepticoin.utils import block_filename
 import zipfile
 import urllib.request
 from pathlib import Path
 from skepticoin.datatypes import Block
 from skepticoin.coinstate import CoinState
+import tarfile
+
+"""
+>>> with tarfile.open('dump.tar.gz', 'r:gz') as f:
+...    for member in f.getmembers():
+...       print(f.extractfile(member).read())
+
+with tarfile.open('00000000.tar.gz', 'r:gz') as f:
+    for member in f.getmembers()[:10]:
+        print(member)
+"""
 
 
 CHAIN_PATH = Path('chain')
 
+BLOCKS_PER_TAR_FILE = 10000
 
-# TODO use tarfile
+def _store_chain_as_tar() -> None:
+
+    os.chdir(CHAIN_PATH)
+
+    files = Path('.').iterdir()
+    uncompressed_file_paths = sorted(filter(lambda file: not file.name.endswith('tar.gz'), files))
+
+    tar: Optional[tarfile.TarFile] = None
+    prev_tar_height = -1
+
+    for path in uncompressed_file_paths:
+        height = int(path.name.split("-")[0])
+        tar_height = height - (height % BLOCKS_PER_TAR_FILE)
+
+        if (not tar) or tar_height != prev_tar_height:
+            if tar:
+                tar.close()
+
+            prev_tar_height = tar_height
+            tar_name = f'{tar_height:08d}.tar.gz'
+            tar = tarfile.open(tar_name, 'w:gz')
+            print(f"Compressing chain: creating {tar_name}")
+
+        tar.add(path)
+
+    if tar:
+        tar.close()
+
+    for block_file in Path('.').iterdir():
+        if not block_file.name.endswith('tar.gz'):
+            block_file.unlink()
+
+    os.chdir('..')
 
 
 def read_chain_from_disk() -> CoinState:
-    create_chain_dir()
+    print(f"Checking if {CHAIN_PATH} directory exists")
+
+    if not CHAIN_PATH.exists():
+        _create_chain_dir()
+
+    _store_chain_as_tar()
 
     print("Reading chain from disk")
 
     coinstate = CoinState.zero()
-    block_files: List[Path] = sorted(CHAIN_PATH.iterdir())
 
-    for block_file in block_files:
-        height = int(block_file.name.split("-")[0])
-        if height % 1000 == 0:
-            print(block_file.name)
+    for tar_path in sorted(CHAIN_PATH.iterdir()):
+        if not tar_path.name.endswith('tar.gz'):
+            continue
 
-        try:
-            with open(block_file.absolute(), 'rb') as f:
-                block = Block.stream_deserialize(f)
-        except Exception as e:
-            raise Exception("Corrupted block on disk: %s" % block_file.name) from e
+        print(f"Loading chain from {tar_path}")
 
-        coinstate = coinstate.add_block_no_validation(block)
+        with tarfile.open(tar_path.absolute(), 'r:gz') as f:
+            for member in f.getmembers():
+                try:
+                    block = Block.stream_deserialize(f.extractfile(member))  # type: ignore
+                except Exception as e:
+                    raise Exception("Corrupted block on disk: %s, %s" % (tar_path.name, member)) from e
+
+                coinstate = coinstate.add_block_no_validation(block)
 
     return coinstate
 
 
-def create_chain_dir() -> None:
-    if CHAIN_PATH.exists():
-        return
+def _create_chain_dir() -> None:
+    print(f"Creating {CHAIN_PATH} directory")
 
     print("Downloading partial blockchain from trusted source to 'blockchain-master' folder")
 
