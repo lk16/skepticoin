@@ -8,6 +8,7 @@ from ipaddress import IPv6Address
 from threading import Lock
 from time import time
 from typing import Dict, List, Optional, Set, Tuple
+from sys import platform
 
 from skepticoin.coinstate import CoinState
 import random
@@ -399,9 +400,6 @@ class ConnectedRemotePeer(RemotePeer):
         self.hello_sent: bool = False
         self.hello_received: bool = False
 
-        self.sent: bytes = b""
-        self.received: bytes = b""
-
         self.waiting_for_inventory: bool = False
         self.last_empty_inventory_response_at: int = 0
         self.inventory_messages: List[InventoryMessageState] = []
@@ -506,7 +504,6 @@ class ConnectedRemotePeer(RemotePeer):
         self.local_peer.logger.info("ConnectedRemotePeer.handle_can_send()")
 
         sent = sock.send(self.send_buffer)
-        self.sent += self.send_buffer[:sent]
         self.send_buffer = self.send_buffer[sent:]
 
         if len(self.send_buffer) == 0:
@@ -515,8 +512,6 @@ class ConnectedRemotePeer(RemotePeer):
 
     def handle_receive_data(self, data: bytes) -> None:
         self.local_peer.logger.info("%15s ConnectedRemotePeer.handle_receive_data()" % self.host)
-        self.received += data
-
         self.receiver.receive(data)
 
     def handle_hello_message_received(
@@ -810,6 +805,7 @@ class LocalPeer:
         ]
 
         self.logger = logging.getLogger("skepticoin.networking.%s" % self.nonce)
+        self.last_stats_output: str = ""
 
     def start_listening(self, port: int = PORT) -> None:
         self.port = port
@@ -890,6 +886,10 @@ class LocalPeer:
     def start_outgoing_connection(self, disconnected_peer: DisconnectedRemotePeer) -> None:
         self.logger.info("%15s LocalPeer.start_outgoing_connection()" % disconnected_peer.host)
 
+        if platform == 'win32' and len(self.selector.get_map()) >= 64:
+            # the client no longer works at all in Windows once we go over 64 connected peers
+            return
+
         server_addr = (disconnected_peer.host, disconnected_peer.port)
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -942,21 +942,25 @@ class LocalPeer:
         coinstate = self.chain_manager.coinstate
         assert coinstate
 
-        print("NETWORK")
-        print("Nr. of connected peers:", len(self.network_manager.get_active_peers()))
-        for p in self.network_manager.get_active_peers()[:10]:
-            print("%15s:%s - %s" % (p.host, p.port if p.port != IRRELEVANT else "....", p.direction))  # type: ignore
+        out = "NETWORK - %d connected peers: \n" % len(self.network_manager.get_active_peers())
+        for p in self.network_manager.get_active_peers():
+            # TODO: Fix inconsistent usage of datatypes for PORT. int or str, pick one!
+            out += "  %15s:%s %s,\n" % (p.host, p.port if p.port != IRRELEVANT else "....", p.direction)  # type: ignore
 
-        print("\nCHAIN")
+        out += "CHAIN - "
         for (head, lca) in coinstate.forks():
             if head.height < coinstate.head().height - 10:
                 continue  # don't show forks which are out-ran by more than 10 blocks
 
-            print("Height    %s" % head.height)
-            print("Date/time %s" % datetime.fromtimestamp(head.timestamp).isoformat())
+            out += "Height = %s, " % head.height
+            out += "Date/time = %s\n" % datetime.fromtimestamp(head.timestamp).isoformat()
             if head.height != lca.height:
-                print("diverges for %s blocks" % (head.height - lca.height))
-            print()
+                out += "  diverges for %s blocks\n" % (head.height - lca.height)
+            out += "\n"
+
+        if out != self.last_stats_output:
+            print(out)
+            self.last_stats_output = out
 
     def show_network_stats(self) -> None:
         print("NETWORK")

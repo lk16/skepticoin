@@ -86,6 +86,7 @@ class MinerWatcher:
     def __init__(self) -> None:
         parser = DefaultArgumentParser()
         parser.add_argument('-n', default=1, type=int, help='number of miner instances')
+        parser.add_argument('--quiet', action='store_true', help='do not print stats to the console every second')
         self.args = parser.parse_args()
 
         self.recv_queue: Queue = Queue()
