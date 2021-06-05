@@ -223,7 +223,8 @@ class MinerWatcher:
     def handle_scrypt_output_message(self, miner_id: int, data: bytes) -> None:
         summary_hash: bytes = data
 
-        self.increment_hash_counter()
+        if not self.args.quiet:
+            self.increment_hash_counter()
 
         summary, current_height, transactions = self.mining_args[miner_id]
 
