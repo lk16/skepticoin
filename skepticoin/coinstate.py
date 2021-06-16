@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Any, List, Optional, Tuple, Callable
+from typing import Any, List, Optional, Tuple
 
 import immutables
 
 from .signing import PublicKey
 from .datatypes import OutputReference, Block, Output, BlockSummary, Transaction
-from .humans import human
 from .genesis import genesis_block_data
 
 
@@ -122,31 +121,6 @@ class CoinState:
 
         # block_hash -> (public_key -> (value, [OutputReference]))
         self.public_key_balances_by_hash = public_key_balances_by_hash
-
-    def dump(self, dumper: Callable[[Any], None]) -> None:
-        """
-        Dump the chain so that it can be loaded by the load() method later. Currently we only save the blocks.
-        It would be better to save the other stuff too, but that's not convenient right now.
-        DUMPER function must be passed as a parameter, to allow the calling code to control the actual file format.
-        """
-        dumper(self.block_by_hash)
-
-    @classmethod
-    def load(self, loader: Callable[[], Any]) -> CoinState:
-        "Faster way to load a previously dump()'d blockchain."
-        block_by_hash = loader()
-        coinstate = CoinState.zero()
-        sorted_blocks = list(block_by_hash.values())
-        sorted_blocks.sort(key=lambda block: block.height)  # type: ignore
-        for block in sorted_blocks:
-            coinstate = coinstate.add_block_no_validation(block)
-        return coinstate
-
-    def __repr__(self) -> str:
-        if self.current_chain_hash is None:
-            return "CoinState @ empty"
-        return "CoinState @ %s (h. %s) w/ %s heads" % (
-            human(self.current_chain_hash), self.head().height, len(self.heads))
 
     @classmethod
     def empty(cls) -> CoinState:

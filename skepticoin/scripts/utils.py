@@ -10,7 +10,6 @@ import os
 import tempfile
 import logging
 import argparse
-import pickle
 
 from skepticoin.datatypes import Block
 from skepticoin.coinstate import CoinState
@@ -91,12 +90,7 @@ def check_for_fresh_chain(thread: NetworkingThread) -> bool:
 
 
 def read_chain_from_disk() -> CoinState:
-    if os.path.isfile('chain.cache'):
-        print("Reading cached chain")
-        with open('chain.cache', 'rb') as file:
-            coinstate = CoinState.load(lambda: pickle.load(file))
-            height = len(coinstate.block_by_hash)
-    elif os.path.isfile('chain.zip'):
+    if os.path.isfile('chain.zip'):
         print("Reading initial chain from zipfile")
         coinstate = CoinState.zero()
         with zipfile.ZipFile('chain.zip') as zip:
@@ -134,18 +128,7 @@ def read_chain_from_disk() -> CoinState:
 
         coinstate = coinstate.add_block_no_validation(block)
 
-    if fresher_chain:
-        write_chain_cache_to_disk(coinstate)
-
     return coinstate
-
-
-def write_chain_cache_to_disk(coinstate: CoinState) -> None:
-    print("Caching chain for faster loading next time")
-    # Currently this takes about 2 seconds. It could be optimized further
-    # if we switch to an appendable file format for the cache.
-    with open('chain.cache', 'wb') as file:
-        coinstate.dump(lambda data: pickle.dump(data, file))
 
 
 def open_or_init_wallet() -> Wallet:
