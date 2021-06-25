@@ -4,7 +4,6 @@ from collections import namedtuple
 from typing import Any, List, Optional, Tuple
 
 import immutables
-
 from .signing import PublicKey
 from .datatypes import OutputReference, Block, Output, BlockSummary, Transaction
 from .genesis import genesis_block_data
@@ -197,6 +196,14 @@ class CoinState:
             current_chain_hash = block_hash
         else:
             current_chain_hash = self.current_chain_hash  # a fork, but the most recently added block is non-current
+
+        print(f"""
+        At height: {block.height}
+        grandchildren of block_by_hash: {len(block_by_hash)}
+        grandchildren of unspent_transaction_outs_by_hash: {sum(len(item) for item in unspent_transaction_outs_by_hash.values())}
+        grandchildren of block_by_height_by_hash: {sum(len(item) for item in block_by_height_by_hash.values())}
+        grandchildren of public_key_balances_by_hash: {sum(len(item) for item in public_key_balances_by_hash.values())}
+        """)
 
         return CoinState(
             block_by_hash=block_by_hash,
